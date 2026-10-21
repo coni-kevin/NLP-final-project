@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Natural Language Processing 大作业官方评测教程</title>
+<style>body{max-width:900px;margin:45px auto;padding:0 24px 60px;font:17px/1.85 system-ui,"Microsoft YaHei",sans-serif;color:#202832}h1{font-size:30px;line-height:1.4}h2{font-size:23px;margin-top:38px}h3{font-size:18px}pre{background:#f2f4f6;padding:16px;white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.6;font-size:14px}code{font-family:Consolas,monospace}table{border-collapse:collapse;width:100%}td,th{border:1px solid #d1d7de;padding:10px;text-align:left}th{background:#f2f4f6}a{color:#1456a0}.intro{font-size:18px}.small{font-size:14px;color:#52606d}@media print{body{margin:0;max-width:none;font-size:11pt}h2{break-after:avoid}pre,tr{break-inside:avoid}a{color:inherit}}</style>
+<h1>Natural Language Processing<br>大作业官方评测教程</h1>
+<p class="intro">本教程帮助各组在提交前，用固定版本的 MultiHop-RAG 官方脚本评测自己的预测，并把实验结果写进报告。自测只需普通 CPU 和 Python，不需要 GPU，也不会调用生成模型。</p>
+<p><strong>学生提交报告 Word、同内容 PDF、predictions.json 和 execution record。</strong>自测输出留在本地，结果写入报告，无需另交 scores 文件。教师会根据最终预测统一复核。全部材料及 GitHub 代码须在 <u>2026 年 11 月 1 日前</u>准备并提交，报告附可访问的仓库地址。</p>
+
+<h2>1　准备工作目录</h2>
+<p>安装 Python 3.10 或更新版本。解压教程包，在解压目录中打开终端，将自己生成的 <code>predictions.json</code> 复制到该目录。不要把空白预测模板当作实验结果。</p>
+<pre>eval_tutorial/
+  学生自测教程.html
+  download_eval_files.py
+  prepare_eval.py
+  predictions.json           ← 放入本组实际生成的预测</pre>
+<p>以下命令适用于 Windows PowerShell、macOS 和 Linux。Windows 若不识别 <code>python</code>，可将命令中的 <code>python</code> 换成 <code>py</code>；macOS/Linux 可换成 <code>python3</code>。所有步骤使用同一 Python 环境。</p>
+<pre>python --version
+python -m pip install tqdm
+python download_eval_files.py</pre>
+<p>下载工具会获取官方 <code>qa_evaluate.py</code> 和 <code>MultiHopRAG.json</code>，校验 SHA-256 后保存。它不修改官方代码。这里不需要下载 corpus.json：生成答案时才需要检索文档库。</p>
+<p class="small">评测脚本固定 commit：c1c1287aa60a94acf9c4d20c891c9cd611a0f6e8<br>数据固定 revision：71ac0d0bd1f951d2d6b70311f7d2ae404e1ffa82</p>
+
+<h2>2　检查预测文件</h2>
+<p><code>predictions.json</code> 是 UTF-8 JSON 数组，包含全部 2,556 个题号。每条记录只保留下列两个字段；示例仅展示两条记录，并非完整文件：</p>
+<pre>[
+  {"question_id": "q0000", "model_answer": "本组模型生成的最终短答案"},
+  {"question_id": "q0001", "model_answer": "本组模型生成的最终短答案"}
+]</pre>
+<ul><li><code>q0000</code> 对应原始 MultiHopRAG.json 的第一题，依次到 <code>q2555</code>。不能先打乱官方问题顺序再编号。</li><li><code>model_answer</code> 仅保存实际最终短答案，通常为英文。无法由证据回答时输出 <code>Insufficient Information</code>。</li><li>程序失败或漏答时保留该题，答案写空字符串 <code>""</code>，执行记录中说明原因。不要删除失败题以提高得分。</li><li>不要放入标准答案、参考证据标注、推理过程或候选答案列表。标准答案只能用于评测与分析。</li></ul>
+
+<h2>3　转换为官方脚本的输入格式</h2>
+<p>课程提交文件使用 <code>question_id</code>；官方脚本需要问题原文 <code>query</code>，并使用 <code>question_type</code> 分组。直接把课程 JSON 交给官方脚本会出现字段错误。先运行：</p>
+<pre>python prepare_eval.py --predictions predictions.json --queries MultiHopRAG.json --output qa_submission.json</pre>
+<p>正常输出会显示 <code>Validated 2556 questions</code> 和空答案数量。转换工具检查完整题号、重复项、字段类型和数据文件版本，并生成：</p>
+<pre>[
+  {
+    "query": "从官方问题文件读取的原始问题",
+    "question_type": "从官方文件读取的题型",
+    "model_answer": "本组模型生成的最终短答案"
+  }
+]</pre>
+<p>该工具只校验和转换格式，不计算分数，不把标准答案写入预测。<code>qa_submission.json</code> 是本地评测中间文件；最终提交的预测文件仍为 <code>predictions.json</code>。</p>
+
+<h2>4　运行官方评测</h2>
+<pre>python qa_evaluate.py --file qa_submission.json --queries MultiHopRAG.json</pre>
+<p>脚本依次打印各题型结果和 <code>Overall Metrics</code>。如需在本地保留输出，可使用：</p>
+<pre>python qa_evaluate.py --file qa_submission.json --queries MultiHopRAG.json &gt; eval_output.txt</pre>
+<p>进度条可能仍显示在终端，这是正常现象。结果写入当前目录的 <code>eval_output.txt</code>。每次重新生成 predictions.json 后，必须重新执行第 3、4 步，避免评测旧文件。</p>
+
+<h2>5　读取结果并写入报告</h2>
+<p>找到最后的 <code>Overall Metrics</code>，使用其中的 <code>Accuracy</code>。例如输出为 <code>0.7469</code>，则报告中写约 <strong>74.69%</strong>，benchmark 分数 B 约为 <strong>74.69</strong>。这是示例，不是本组成绩。</p>
+<p>四类问题的数量应分别为：推断 inference_query 816 题、比较 comparison_query 856 题、时间 temporal_query 583 题、无答案 null_query 301 题，总计 2,556 题。请在报告 Evaluation Result 节填写下表，并说明模型、RAG 方法和实际运行配置。</p>
+<table><tr><th>评测范围</th><th>题数</th><th>Official Accuracy（%）</th></tr><tr><td>Overall</td><td>2,556</td><td>填写自测值</td></tr><tr><td>inference_query</td><td>816</td><td>填写自测值</td></tr><tr><td>comparison_query</td><td>856</td><td>填写自测值</td></tr><tr><td>temporal_query</td><td>583</td><td>填写自测值</td></tr><tr><td>null_query</td><td>301</td><td>填写自测值</td></tr></table>
+<p>可使用下面的表述，并替换方括号内容：</p>
+<pre>We evaluated our final predictions on all 2,556 MultiHop-RAG questions
+using the official qa_evaluate.py script at commit
+c1c1287aa60a94acf9c4d20c891c9cd611a0f6e8.
+Our overall official Accuracy was [XX.XX]%, corresponding to a
+benchmark score B of approximately [XX.XX]. Failed predictions were
+kept as empty answers. Per-type results are reported in the table.</pre>
+<p>Benchmark 得分只用于 Response Accuracy 单项，该项占总成绩 40%。B ≥ 75 对应单项 90–100 分档，70 ≤ B &lt; 75 对应 80–89 分档，65 ≤ B &lt; 70 对应 60–79 分档；具体单项分数由教师评定。其余评分项另行评阅。</p>
+<p><strong>不要用四舍五入后的显示值跨档。</strong>官方终端仅打印四位小数，报告可保留两位百分数；最终档位按教师复核的未舍入比例确定。</p>
+
+<h2>6　理解官方指标</h2>
+<p>此固定版本将预测与参考答案转为小写、按空白切词，只要存在重合词就判为该题匹配成功。它不是严格 Exact Match，也不是语义裁判评分；该版本输出的 Precision、Recall、F1 和 Accuracy 数值相同。报告请明确写“official-script Accuracy”，不要将四个相同值解释成四项独立能力。</p>
+<p>按任务书只评最终短答案。不要把检索全文或多种候选答案拼进 model_answer 来增加词重合；这些内容放入 execution record。评测规则以固定官方脚本原样执行。</p>
+
+<h2>7　常见问题</h2>
+<table><tr><th>现象</th><th>处理</th></tr><tr><td>No module named tqdm</td><td>用运行评测的同一 Python 执行 python -m pip install tqdm。</td></tr><tr><td>找不到文件</td><td>在教程目录运行命令，或给参数传完整路径；带空格的路径加双引号。</td></tr><tr><td>下载超时或网络失败</td><td>恢复 GitHub / Hugging Face 访问后重试；已校验成功的文件会直接复用。不要改用未知版本。</td></tr><tr><td>文件校验失败</td><td>把当前文件移到其他位置备份，再重新下载固定版本；不要编辑或重新排序官方问题文件。</td></tr><tr><td>Missing / Duplicate / Unknown question ID</td><td>修复题号。缺失或失败题也要保留记录，model_answer 写空字符串；正式评测要求全部题目。</td></tr><tr><td>KeyError: query 或题型 unknown</td><td>重新执行格式转换，并将 qa_submission.json 传给官方脚本。</td></tr><tr><td>Skipping query without a gold answer</td><td>本教程的完整转换流程不应出现此消息。检查是否使用了转换产物及固定数据文件，不要把跳过题目的分数当作全量结果。</td></tr><tr><td>分数为 0 或偏低</td><td>先检查是否误用了空模板、题号是否与官方原始顺序一致，再检查模型最终答案和实际检索过程。</td></tr></table>
+
+<h2>8　提交前确认</h2>
+<p>报告写入本次最终预测的自测成绩和分析，并导出同内容 PDF；提交完整 predictions.json 和相应 execution record；GitHub 仓库与这些结果对应。<strong>不用单独交 eval_output.txt、qa_submission.json 或 scores 文件夹。</strong>正式成绩以教师复核为准。</p>
+<p>官方来源：<a href="https://github.com/yixuantt/MultiHop-RAG/blob/c1c1287aa60a94acf9c4d20c891c9cd611a0f6e8/qa_evaluate.py">固定版本评测代码</a> · <a href="https://huggingface.co/datasets/yixuantt/MultiHopRAG/tree/71ac0d0bd1f951d2d6b70311f7d2ae404e1ffa82">固定版本数据</a> · <a href="https://github.com/yixuantt/MultiHop-RAG">MultiHop-RAG 官方仓库</a>。作者 Yixuan Tang、Yi Yang；数据许可 ODC-BY。教程附带的格式转换与下载工具为课程辅助工具，不是官方评测实现。</p>
+</html>
