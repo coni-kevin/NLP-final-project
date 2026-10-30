@@ -123,11 +123,35 @@ MultiHop-RAG-Project/
 
 ## 复现命令
 
-以下命令在 Linux、Python 3.11 环境中运行。先进入项目根目录：
+以下命令在 Linux、NVIDIA CUDA GPU 环境中运行。原实验使用A100 40GB；仅CPU可执行归档校验和评分，不能运行本项目的生成代码。
+
+在已安装conda的终端中新建Python 3.11环境；已配置原 `rag` 环境时可激活该环境并跳过创建和重复安装：
 
 ```bash
+conda create -n multihop-rag python=3.11 -y
+conda activate multihop-rag
 cd MultiHop-RAG-Project
 bash environment/install.sh
+python -m pip check
+```
+
+依赖安装需要网络。模型推理设置为离线加载，因此模型目录必须包含完整权重、分词器、配置及自定义Python代码，不能只放权重分片。生成入口还会严格核对torch、transformers和accelerate的核心版本。
+
+### 0. 仓库维护者：更新README校验值
+
+本步骤由仓库维护者在发布前执行。原复现包的 `FILES_SHA256.json` 包含 `README.md` 的哈希；用本文替换原README、并完成下载链接等编辑后，先运行下面的命令，再执行文件校验。仅更新README这一项，不修改代码、数据或归档结果的校验值。发布者已同步校验值时，复现者可跳过本步骤。
+
+```bash
+python - <<'PY'
+import hashlib
+import json
+from pathlib import Path
+
+path = Path("FILES_SHA256.json")
+manifest = json.loads(path.read_text(encoding="utf-8"))
+manifest["README.md"] = hashlib.sha256(Path("README.md").read_bytes()).hexdigest()
+path.write_text(json.dumps(manifest, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+PY
 ```
 
 ### 1. 校验归档材料
@@ -136,11 +160,34 @@ bash environment/install.sh
 python verify.py
 ```
 
-该命令只检查文件、原始上下文和归档的166/200结果，不调用模型。
+该命令只检查文件、原始上下文和归档的166/200结果，不调用模型。若缺失文件，应先恢复原复现包；不要删除清单条目来绕过校验。
+
+随后检查全部2556题的已保存检索上下文，不加载模型：
+
+```bash
+python tools/condition_check_experiment/run_condition_check.py \
+  --project-root . --limit 0 --dry-run
+```
+
+终端应显示 `Corpus: 609 documents; chunks: 5480; questions this run: 2556` 和 `CPU retrieval check passed`。此步骤会校验全部指定题目的片段，但仅打印前三题示例；尚未检查模型分词后的6000 token预算，后者由正式生成中的preflight完成。
 
 ### 2. 重新生成全量预测
 
-若已有完整模型目录，使用下面的命令，并把模型路径换成自己的实际路径：
+先备份已有全量输出，确保本次会重新调用模型。仅在准备开始一次新的独立运行、且没有该目录的运行任务时执行：
+
+```bash
+python - <<'PY'
+from pathlib import Path
+from time import time_ns
+p = Path("outputs/minicpm_condition_check_full")
+if p.exists():
+    backup = p.with_name(p.name + ".archived_" + str(time_ns()))
+    p.rename(backup)
+    print("Existing output backed up to:", backup)
+PY
+```
+
+若已有完整模型目录，使用下面的命令，并把模型路径换成自己的实际绝对路径。仅创建父目录 `models/`；若通过外部路径加载，不要提前创建空的 `models/MiniCPM4.1-8B/` 子目录：
 
 ```bash
 mkdir -p models
@@ -153,7 +200,9 @@ python -u reproduce.py --full --model-dir /实际路径/MiniCPM4.1-8B
 python -u reproduce.py --full
 ```
 
-答案输出到 `outputs/minicpm_condition_check_full/predictions.json`。如已放入归档的全量结果，应先把该目录改名备份，再开始独立复现；同一输出目录同时只运行一个任务。
+答案输出到 `outputs/minicpm_condition_check_full/predictions.json`。同一输出目录同时只运行一个任务。若是接续中断任务，不执行上面的备份步骤，保留原输出目录与相同参数。完整生成还会创建 `condition_check_full_results.zip`，其中打印的本地成绩不能替代下一步官方评分。
+
+完成后检查 `summary.json`：`processed` 和 `successful` 均为2556，`failed` 为0，`complete` 和 `full_benchmark` 均为true。输出目录中还应包含 `fixed_context_check.json`，其中题数为2556且 `all_original_contexts_fit` 为true。
 
 ### 3. 对新预测运行官方评分
 
@@ -173,22 +222,20 @@ python score_official.py \
 - 官方指标为小写化后按空白切词的词重合判定，不是严格精确匹配或语义评分。
 - 77.23%为原归档全量运行的结果；不同GPU或软件环境可能产生输出差异，新运行应按实际预测重新评分。
 
-## 更新本README后的校验清单
+## 复现检查状态
 
-原复现包的 `FILES_SHA256.json` 包含 `README.md` 的哈希。用本文替换原README后，需要在项目根目录执行以下命令，仅更新README这一项；其他代码、数据和归档结果的校验值保持不变：
+本说明已对照冻结源码核对入口、参数和目录，并在独立项目副本上执行以下CPU检查：
 
-```bash
-python - <<'PY'
-import hashlib
-import json
-from pathlib import Path
+| 检查项 | 实际结果 |
+| --- | --- |
+| 全部44项原复现包文件哈希与200题归档校验 | 通过；166/200 |
+| 全部2556题的固定检索上下文检查 | 通过；609篇文档、5480个片段 |
+| 已有提示词、上下文、答案处理等单元测试 | 5项通过 |
+| 用仓库评分入口复核归档全量预测 | 通过；官方Accuracy为0.7723 |
 
-path = Path("FILES_SHA256.json")
-manifest = json.loads(path.read_text(encoding="utf-8"))
-manifest["README.md"] = hashlib.sha256(Path("README.md").read_bytes()).hexdigest()
-path.write_text(json.dumps(manifest, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
-PY
-```
+以上未安装并执行GPU推理，也未重新生成2556个答案。独立项目副本中的全量预测来自归档，仅用于检验评分流程。由于未获得真实模型权重，模型加载、分词后长度检查和跨机器重新生成仍需在GPU服务器上执行；不能将上述CPU检查表述为已经完成端到端复现。
+
+发布前还须补齐上表中的实际下载链接，并确认老师可获取原基线执行记录、全部清单文件以及完整模型。文件按目录放置后，执行上文的完整命令才构成重新推理验证。
 
 ## 数据与评测来源
 
@@ -198,4 +245,3 @@ PY
 - 评测固定commit：`c1c1287aa60a94acf9c4d20c891c9cd611a0f6e8`。
 
 模型许可见原MiniCPM仓库及完整模型文件中的许可说明。
-
