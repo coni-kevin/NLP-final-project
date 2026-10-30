@@ -1,1 +1,31 @@
-
+{
+  "experiment": "MiniCPM4.1-8B original weights + original BM25 top8 + condition-check instruction",
+  "score_scope": "first 200 development questions; NOT full benchmark",
+  "correct": 166,
+  "total": 200,
+  "accuracy_percent": 83.0,
+  "baseline_correct": 163,
+  "baseline_accuracy_percent": 81.5,
+  "official_evaluator_commit": "c1c1287aa60a94acf9c4d20c891c9cd611a0f6e8",
+  "dataset_revision": "71ac0d0bd1f951d2d6b70311f7d2ae404e1ffa82",
+  "model_weights_in_download_package": false,
+  "exact_original_weight_hashes": "Not available in the uploaded run logs. export_complete.py captures hashes from the actual server weights.",
+  "model_config_sha256": "2e6184e20da805d284b0ebba0bf5cf55bb561c6f333b66119fd2cc3f45a7ba15",
+  "model_code_hashes": {
+    "configuration_minicpm.py": "f9014f14f71a175a53d48e862ebabb6007a09a2b7dd61eb6a00ddb0cee0ef9a5",
+    "modeling_minicpm.py": "cd81d52e8e0d35d0c35a75ca4d03ed23f19dae29acf085ea24147003c78d8a3a"
+  },
+  "data_hashes": {
+    "corpus": "20b61b5ab84de84a927420c5d265b7ec8d859ae49980699958a787ade9e4d28f",
+    "queries": "03cfb4926461f868684903aadc8024447bdda5bb3f6804741424cce338515bff"
+  },
+  "recorded_packages": {
+    "torch": "2.6.0+cu124",
+    "transformers": "4.56.2",
+    "accelerate": "1.10.1"
+  },
+  "recorded_python": "3.11.17",
+  "recorded_gpu": "NVIDIA A100-PCIE-40GB",
+  "recorded_driver": "550.90.07",
+  "recorded_cuda": "12.4"
+}
