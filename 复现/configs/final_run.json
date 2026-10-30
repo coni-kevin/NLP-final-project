@@ -1,0 +1,45 @@
+{
+  "pipeline_version": "condition-check-1",
+  "context_source": {
+    "method": "exact saved original BM25 context",
+    "baseline_config_sha256": "708feacf1fc8f6c733b7123928fd9e5614a4bf9a749b1ad7ee9cbbe7853308ba",
+    "selected_contexts_sha256": "09c10d77e84a79d492681a69b5bd352a7c54502ef9cfc6425da9cf408f5180d9",
+    "loader_sha256": "9bc987579b9f489b073eb382b4641cb8bdebac0a22fdfa4b1c9f521d91a7ebab",
+    "question_count": 2556
+  },
+  "prompt_policy_sha256": "397d2bfb42c28ccb0f9c63f3c6d0593339b297cd02456ed59770d7fe2175ec8f",
+  "model": "openbmb/MiniCPM4.1-8B",
+  "model_path": "/root/autodl-tmp/multihop_rag/models/MiniCPM4.1-8B",
+  "model_config_sha256": "2e6184e20da805d284b0ebba0bf5cf55bb561c6f333b66119fd2cc3f45a7ba15",
+  "model_code_hashes": {
+    "configuration_minicpm.py": "f9014f14f71a175a53d48e862ebabb6007a09a2b7dd61eb6a00ddb0cee0ef9a5",
+    "modeling_minicpm.py": "cd81d52e8e0d35d0c35a75ca4d03ed23f19dae29acf085ea24147003c78d8a3a"
+  },
+  "data_hashes": {
+    "corpus": "20b61b5ab84de84a927420c5d265b7ec8d859ae49980699958a787ade9e4d28f",
+    "queries": "03cfb4926461f868684903aadc8024447bdda5bb3f6804741424cce338515bff"
+  },
+  "script_sha256": "3d21123974ebc53fcbe9b8d77ef5df9c71a856ef1ab5c34ac6fab273ace658f8",
+  "top_k": 8,
+  "max_per_doc": 2,
+  "chunk_words": 250,
+  "overlap_words": 50,
+  "max_input_tokens": 6000,
+  "max_new_tokens": 128,
+  "retries": 1,
+  "bm25": {
+    "k1": 1.5,
+    "b": 0.75,
+    "idf": "log(1+(N-df+0.5)/(df+0.5))"
+  },
+  "precision": "bfloat16",
+  "quantization": null,
+  "thinking": false,
+  "decoding": "greedy",
+  "seed": 42,
+  "packages": {
+    "torch": "2.6.0+cu124",
+    "transformers": "4.56.2",
+    "accelerate": "1.10.1"
+  }
+}

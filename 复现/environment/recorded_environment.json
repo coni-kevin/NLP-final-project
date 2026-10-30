@@ -1,0 +1,10 @@
+{
+  "source": "actual run configuration and hardware records; not a complete environment export",
+  "python": "3.11.17",
+  "torch": "2.6.0+cu124",
+  "transformers": "4.56.2",
+  "accelerate": "1.10.1",
+  "cuda": "12.4",
+  "gpu": "NVIDIA A100-PCIE-40GB",
+  "sentencepiece": "version not recorded in uploaded logs; full server export captures actual version"
+}
